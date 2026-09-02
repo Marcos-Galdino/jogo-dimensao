@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vila Adormecida — jogo de dedução para 35 pessoas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10141F;
+    --panel: #171C2B;
+    --panel-raised: #1F2538;
+    --moon: #E7E2D3;
+    --gold: #C9A961;
+    --blood: #A23E3E;
+    --violet: #8A6FB3;
+    --silver: #7C879C;
+    --line: #2B3247;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(ellipse at 50% -10%, #1A2036 0%, #10141F 55%);
+    color: var(--moon);
+    font-family: 'Work Sans', sans-serif;
+    min-height:100vh;
+    padding: 26px 16px 70px;
+  }
+  .wrap{ max-width: 620px; margin:0 auto; }
+
+  .eyebrow{
+    display:flex; align-items:center; gap:10px;
+    color: var(--gold); font-size:0.8rem; margin-bottom: 14px;
+  }
+  .eyebrow .rule{ flex:1; height:1px; background:var(--line); }
+
+  h1{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600; font-size:2.4rem; line-height:1.1;
+    margin:0 0 10px; color: var(--moon);
+  }
+  p.lead{ color: var(--silver); font-size:0.98rem; line-height:1.6; max-width:56ch; margin:0 0 26px;}
+
+  .tabs{ display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+  .tab{
+    padding:9px 14px; border-radius:999px; border:1px solid var(--line);
+    background:transparent; color:var(--silver); font-size:0.85rem; cursor:pointer;
+    font-family:'Work Sans',sans-serif;
+  }
+  .tab.active{ background:var(--panel-raised); color:var(--moon); border-color:var(--gold); }
+
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  textarea{
+    width:100%; min-height:220px; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; color:var(--moon); font-family:'Work Sans',sans-serif; font-size:0.95rem;
+    padding:14px; resize:vertical; line-height:1.6;
+  }
+  .hint{ color:var(--silver); font-size:0.8rem; margin-top:8px; }
+
+  .btn{
+    display:inline-block; margin-top:14px; padding:12px 20px; border-radius:9px; border:none;
+    background:var(--gold); color:#171000; font-weight:600; font-size:0.95rem; cursor:pointer;
+    font-family:'Work Sans',sans-serif;
+  }
+  .btn.secondary{ background:transparent; border:1px solid var(--line); color:var(--moon); font-weight:500;}
+  .btn.danger{ background:transparent; border:1px solid var(--blood); color:var(--blood); font-weight:500; }
+  .btn:active{ transform:scale(0.98); }
+
+  select{
+    width:100%; padding:12px 14px; border-radius:9px; background:var(--panel); color:var(--moon);
+    border:1px solid var(--line); font-family:'Work Sans',sans-serif; font-size:0.95rem;
+  }
+
+  .summary-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:18px 0; }
+  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
+  .stat .n{ font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:var(--gold); }
+  .stat .l{ font-size:0.78rem; color:var(--silver); }
+
+  .role-card{
+    background:linear-gradient(160deg,var(--panel-raised),var(--panel));
+    border:1px solid var(--line); border-radius:14px; padding:26px 22px; margin-bottom:16px;
+  }
+  .role-card .team{ font-size:0.75rem; letter-spacing:0.02em; margin-bottom:6px; }
+  .role-card h2{ font-family:'Cormorant Garamond',serif; font-size:1.9rem; margin:0 0 14px; color:var(--moon);}
+  .role-card .sec-label{ font-size:0.78rem; color:var(--gold); margin:14px 0 4px; }
+  .role-card p{ margin:0; line-height:1.6; font-size:0.96rem; color:var(--moon); }
+  .team.aldeoes{ color:var(--gold); }
+  .team.lobos{ color:var(--blood); }
+  .team.solo{ color:var(--violet); }
+
+  .script-block{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 18px; margin-bottom:14px;}
+  .script-block h3{ font-family:'Cormorant Garamond',serif; font-size:1.35rem; margin:0 0 10px; color:var(--gold);}
+  .script-block .step{ margin-bottom:12px; padding-left:14px; border-left:2px solid var(--line); }
+  .script-block .step .who{ font-size:0.82rem; color:var(--moon); font-weight:600; margin-bottom:2px;}
+  .script-block .step .say{ font-size:0.9rem; color:var(--silver); line-height:1.55; font-style:italic; }
+
+  table.roster{ width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:10px; }
+  table.roster th{ text-align:left; color:var(--silver); font-weight:500; font-size:0.75rem; padding:8px 6px; border-bottom:1px solid var(--line);}
+  table.roster td{ padding:8px 6px; border-bottom:1px solid var(--line); color:var(--moon); }
+  table.roster td.role-lobos{ color:var(--blood); }
+  table.roster td.role-solo{ color:var(--violet); }
+  table.roster td.role-aldeoes{ color:var(--gold); }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,9,14,0.9); display:flex; align-items:center; justify-content:center;
+    padding:22px; opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .overlay .card{ max-width:440px; width:100%; }
+
+  .closebtn{ width:100%; margin-top:18px; padding:13px; border-radius:9px; border:none;
+    background:var(--gold); color:#171000; font-weight:600; font-size:0.95rem; cursor:pointer; font-family:'Work Sans',sans-serif;}
+
+  footer{ margin-top:30px; font-size:0.8rem; color:var(--silver); }
+  .linklike{ color:var(--gold); background:none; border:none; text-decoration:underline; cursor:pointer; font-family:inherit; font-size:inherit; padding:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow"><span>UM JOGO DE DEDUÇÃO SOCIAL — 35 JOGADORES</span><div class="rule"></div></div>
+  <h1>Vila Adormecida</h1>
+  <p class="lead">Todo mundo dorme. Alguns acordam pra proteger a vila, alguns acordam pra caçá-la. Cadastre os nomes, sorteie as funções e cada um revela a sua em segredo — sem que os outros vejam.</p>
+
+  <div class="tabs">
+    <button class="tab" data-tab="setup">Cadastrar & sortear</button>
+    <button class="tab" data-tab="reveal">Ver minha função</button>
+    <button class="tab" data-tab="narrator">Roteiro do narrador</button>
+  </div>
+
+  <!-- SETUP -->
+  <div class="panel" id="panel-setup">
+    <div id="setupForm">
+      <p class="lead" style="margin-bottom:10px;">Cole um nome por linha (o jogo se ajusta a qualquer quantidade, mas foi pensado para 35).</p>
+      <textarea id="namesInput" placeholder="Ana&#10;Bruno&#10;Carla&#10;Diego&#10;..."></textarea>
+      <div class="hint" id="countHint">0 nomes.</div>
+      <div id="setupWarning" style="display:none; color:var(--blood); background:rgba(162,62,62,0.12); border:1px solid var(--blood); border-radius:8px; padding:10px 12px; margin-top:10px; font-size:0.88rem;"></div>
+      <button class="btn" id="sortBtn">sortear funções</button>
+    </div>
+    <div id="setupDone" style="display:none;">
+      <p class="lead">As funções já foram sorteadas para esta partida.</p>
+      <div class="summary-grid" id="summaryGrid"></div>
+      <button class="btn secondary" id="goRevealBtn">ir para "ver minha função"</button>
+      <button class="btn danger" id="resetBtn" style="margin-left:8px;">reiniciar partida</button>
+    </div>
+  </div>
+
+  <!-- REVEAL -->
+  <div class="panel" id="panel-reveal">
+    <div id="revealNoGame">
+      <p class="lead">Ainda não há uma partida sorteada. Peça para o narrador cadastrar os nomes primeiro.</p>
+    </div>
+    <div id="revealPicker" style="display:none;">
+      <p class="lead" style="margin-bottom:10px;">Toque no seu nome para ver sua função em segredo.</p>
+      <select id="nameSelect"></select>
+      <button class="btn" id="revealBtn" style="margin-top:12px;">revelar minha função</button>
+    </div>
+  </div>
+
+  <!-- NARRATOR -->
+  <div class="panel" id="panel-narrator">
+    <div id="narratorNoGame">
+      <p class="lead">Cadastre os nomes e sorteie primeiro para ver o roteiro.</p>
+    </div>
+    <div id="narratorContent" style="display:none;"></div>
+  </div>
+
+  <div id="errorBanner" style="display:none; margin-top:18px; padding:12px 14px; border:1px solid var(--blood); background:rgba(162,62,62,0.12); border-radius:9px; font-size:0.85rem; color:var(--moon);"></div>
+  <div id="fallbackBanner" style="display:none; margin-top:18px; padding:12px 14px; border:1px solid var(--gold); background:rgba(201,169,97,0.1); border-radius:9px; font-size:0.85rem; color:var(--moon);">
+    Este dispositivo não conseguiu se conectar ao armazenamento compartilhado do jogo — a partida vai funcionar só nesta aba/dispositivo (não sincroniza com outros celulares). Se quiser jogar com todo mundo em aparelhos diferentes, abra este mesmo arquivo dentro do chat com a Claude, em vez de um navegador comum.
+  </div>
+
+  <footer>Este é um jogo de mesa/social conduzido por um narrador humano — o app cuida do sorteio e da revelação secreta das funções; quem guia a noite e o dia é quem estiver narrando.</footer>
+</div>
+
+<div class="overlay" id="overlay"><div class="card" id="card"></div></div>
+
+<script>
+// Fallback: se o armazenamento compartilhado do app não estiver disponível
+// neste ambiente, usa memória local (funciona só neste dispositivo/aba).
+const memoryStore = {};
+let usingFallback = false;
+const storage = (typeof window !== 'undefined' && window.storage) ? window.storage : (function(){
+  usingFallback = true;
+  return {
+    async get(key, shared){
+      const k = (shared?'s:':'p:')+key;
+      if(!(k in memoryStore)) throw new Error('not found');
+      return { key, value: memoryStore[k], shared };
+    },
+    async set(key, value, shared){
+      const k = (shared?'s:':'p:')+key;
+      memoryStore[k] = value;
+      return { key, value, shared };
+    },
+    async delete(key, shared){
+      const k = (shared?'s:':'p:')+key;
+      delete memoryStore[k];
+      return { key, deleted:true, shared };
+    },
+    async list(){ return { keys: [] }; }
+  };
+})();
+
+const ROLE_DEFS = {
+  "Lobisomem": {
+    team: "lobos", teamLabel: "Lobisomens",
+    ability: "Toda noite, no 3º Momento, combine em silêncio com os outros lobisomens quem será a vítima da noite.",
+    win: "Os lobisomens vencem quando o número de lobisomens vivos fica igual ou maior que o número de todos os outros jogadores vivos."
+  },
+  "Vidente": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Toda noite, no 1º Momento, aponte para uma pessoa. O narrador vai indicar, só para você, se ela é lobisomem ou não.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  },
+  "Médica": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Toda noite, no 2º Momento, aponte para uma pessoa para curá-la caso seja atacada pelos lobisomens essa noite.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  },
+  "Guarda-costas": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Toda noite, no 2º Momento, aponte para uma pessoa para protegê-la. Se ela for atacada, você morre no lugar dela.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  },
+  "Bruxa": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "No 3º Momento, depois de ver quem os lobisomens escolheram, você decide, uma única vez no jogo, se usa sua poção de cura para salvar a vítima — e, uma única vez no jogo, se usa sua poção de veneno para matar outra pessoa.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  },
+  "Caçador": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Você não age durante a noite. Mas se morrer — de qualquer forma, a qualquer momento — aponte imediatamente para outra pessoa, que também é eliminada junto com você.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  },
+  "Cupido": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Somente na primeira noite, no 1º Momento, escolha duas pessoas (pode incluir você) para virarem Enamorados. Se um deles morrer, o outro morre de coração partido na hora.",
+    win: "Se os dois Enamorados forem de times opostos, eles formam um time secreto e vencem juntos se forem os dois últimos sobreviventes. Caso contrário, cada um vence com seu próprio time."
+  },
+  "Ancião": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Você sobrevive ao primeiro ataque dos lobisomens contra você. Se a cidade te eliminar por votação por engano, todos os outros aldeões com função perdem seus poderes a partir dali.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  },
+  "Bobo da Corte": {
+    team: "solo", teamLabel: "Ninguém — joga sozinho",
+    ability: "Você não tem ação noturna. Seu único objetivo é fazer a cidade votar em você durante o dia.",
+    win: "Você vence sozinho, na hora, se for eliminado pela votação da cidade."
+  },
+  "Assassino Solitário": {
+    team: "solo", teamLabel: "Ninguém — joga sozinho",
+    ability: "Toda noite, no 3º Momento, escolha sozinho uma vítima — sem combinar com os lobisomens.",
+    win: "Você vence sozinho se for o último jogador vivo, restando você e mais ninguém."
+  },
+  "Aldeão": {
+    team: "aldeoes", teamLabel: "Aldeões",
+    ability: "Você não tem poder especial. Sua força é observar, discutir e votar bem durante o dia.",
+    win: "A cidade vence quando todos os lobisomens forem eliminados."
+  }
+};
+
+const SPECIAL_ORDER = ["Vidente","Médica","Guarda-costas","Bruxa","Caçador","Cupido","Ancião","Bobo da Corte","Assassino Solitário"];
+
+const NAMES_KEY = "vila-names";
+const ASSIGN_KEY = "vila-assignment";
+const REVEALED_KEY = "vila-revealed";
+const MY_NAME_KEY = "vila-my-name";
+
+function buildDeck(n){
+  const wolves = Math.max(1, Math.round(n * 0.2));
+  const maxSpecials = Math.max(0, n - wolves - 3);
+  const specials = SPECIAL_ORDER.slice(0, Math.min(SPECIAL_ORDER.length, maxSpecials));
+  const villagers = n - wolves - specials.length;
+  const deck = [];
+  for(let i=0;i<wolves;i++) deck.push("Lobisomem");
+  specials.forEach(r => deck.push(r));
+  for(let i=0;i<villagers;i++) deck.push("Aldeão");
+  return deck;
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// ---- tabs ----
+const tabs = document.querySelectorAll('.tab');
+const panels = { setup: document.getElementById('panel-setup'), reveal: document.getElementById('panel-reveal'), narrator: document.getElementById('panel-narrator') };
+function activateTab(name){
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  Object.keys(panels).forEach(k => panels[k].classList.toggle('active', k === name));
+}
+tabs.forEach(t => t.addEventListener('click', () => activateTab(t.dataset.tab)));
+
+// ---- storage helpers ----
+async function getJSON(key, shared){
+  try{
+    const res = await storage.get(key, shared);
+    return res ? JSON.parse(res.value) : null;
+  }catch(e){ return null; }
+}
+async function setJSON(key, value, shared){
+  try{ await storage.set(key, JSON.stringify(value), shared); }catch(e){ /* ignore */ }
+}
+
+// ---- namesInput counting ----
+const namesInput = document.getElementById('namesInput');
+const countHint = document.getElementById('countHint');
+namesInput.addEventListener('input', () => {
+  const list = parseNames(namesInput.value);
+  countHint.textContent = `${list.length} nomes.`;
+});
+function parseNames(raw){
+  const seen = {};
+  return raw.split('\n').map(s => s.trim()).filter(Boolean).map(n => {
+    if(seen[n] === undefined){ seen[n] = 0; return n; }
+    seen[n]++;
+    return `${n} (${seen[n]+1})`;
+  });
+}
+
+const setupWarning = document.getElementById('setupWarning');
+document.getElementById('sortBtn').addEventListener('click', async () => {
+  try{
+    const names = parseNames(namesInput.value);
+    if(names.length < 5){
+      setupWarning.style.display = 'block';
+      setupWarning.textContent = names.length === 0
+        ? 'A caixa de texto está vazia — cole os nomes reais, um por linha (o texto cinza é só um exemplo, não conta).'
+        : `Cadastre pelo menos 5 nomes — você colou ${names.length}.`;
+      setupWarning.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    setupWarning.style.display = 'none';
+    const deck = shuffle(buildDeck(names.length));
+    const assignment = {};
+    names.forEach((name, i) => { assignment[name] = deck[i]; });
+    await setJSON(NAMES_KEY, names, true);
+    await setJSON(ASSIGN_KEY, assignment, true);
+    await setJSON(REVEALED_KEY, {}, true);
+    await refreshAll();
+  }catch(err){
+    showError('Não consegui sortear as funções: ' + err.message);
+  }
+});
+
+function showError(msg){
+  const el = document.getElementById('errorBanner');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  if(!confirm('Isso apaga a partida atual para todo mundo. Continuar?')) return;
+  try{
+    await setJSON(NAMES_KEY, null, true);
+    await setJSON(ASSIGN_KEY, null, true);
+    await setJSON(REVEALED_KEY, null, true);
+    try{ await storage.set(MY_NAME_KEY, '', false); }catch(e){}
+    namesInput.value = '';
+    countHint.textContent = '0 nomes.';
+    await refreshAll();
+  }catch(err){
+    showError('Não consegui reiniciar a partida: ' + err.message);
+  }
+});
+
+document.getElementById('goRevealBtn').addEventListener('click', () => activateTab('reveal'));
+
+// ---- reveal panel ----
+const nameSelect = document.getElementById('nameSelect');
+document.getElementById('revealBtn').addEventListener('click', async () => {
+  try{
+    const name = nameSelect.value;
+    if(!name) return;
+    const revealed = (await getJSON(REVEALED_KEY, true)) || {};
+    const alreadyShown = !!revealed[name];
+    await showRoleFlow(name, alreadyShown);
+  }catch(err){
+    showError('Não consegui revelar a função: ' + err.message);
+  }
+});
+
+async function showRoleFlow(name, alreadyShown){
+  const assignment = (await getJSON(ASSIGN_KEY, true)) || {};
+  const role = assignment[name];
+  if(!role) return;
+  if(alreadyShown){
+    renderConfirmRereveal(name, role);
+  } else {
+    await markRevealed(name);
+    try{ await storage.set(MY_NAME_KEY, name, false); }catch(e){}
+    renderRoleCard(name, role);
+  }
+}
+
+async function markRevealed(name){
+  const revealed = (await getJSON(REVEALED_KEY, true)) || {};
+  revealed[name] = true;
+  await setJSON(REVEALED_KEY, revealed, true);
+}
+
+function renderConfirmRereveal(name, role){
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="role-card">
+      <p style="margin-bottom:16px;">A função de <strong>${name}</strong> já foi revelada antes nesta tela. Se este nome é seu, toque para ver de novo.</p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn secondary" id="cancelReReveal" style="flex:1;">voltar</button>
+        <button class="btn" id="confirmReReveal" style="flex:1;">é meu nome, ver de novo</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('cancelReReveal').onclick = () => document.getElementById('overlay').classList.remove('show');
+  document.getElementById('confirmReReveal').onclick = () => renderRoleCard(name, role);
+}
+
+function renderRoleCard(name, role){
+  const def = ROLE_DEFS[role];
+  const card = document.getElementById('card');
+  card.innerHTML = `
+    <div class="role-card">
+      <div class="team ${def.team}">${def.teamLabel.toUpperCase()}</div>
+      <h2>${role}</h2>
+      <div class="sec-label">SUA HABILIDADE</div>
+      <p>${def.ability}</p>
+      <div class="sec-label">COMO VOCÊ VENCE</div>
+      <p>${def.win}</p>
+      <button class="closebtn" id="closeCard">guardei, obrigado</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('closeCard').onclick = () => document.getElementById('overlay').classList.remove('show');
+}
+
+document.getElementById('overlay').addEventListener('click', (e) => {
+  if(e.target.id === 'overlay') e.target.classList.remove('show');
+});
+
+// ---- narrator panel ----
+function buildNarratorHTML(names, assignment){
+  const counts = {};
+  Object.values(assignment).forEach(r => counts[r] = (counts[r]||0)+1);
+  const wolves = counts["Lobisomem"] || 0;
+  const town = names.length - wolves - (counts["Bobo da Corte"]||0) - (counts["Assassino Solitário"]||0);
+
+  let summary = `<div class="summary-grid">
+    <div class="stat"><div class="n">${names.length}</div><div class="l">jogadores</div></div>
+    <div class="stat"><div class="n">${wolves}</div><div class="l">lobisomens</div></div>
+  </div>`;
+
+  let roster = `<table class="roster"><tr><th>Nome</th><th>Função</th></tr>`;
+  Object.keys(assignment).sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(name => {
+    const role = assignment[name];
+    const cls = ROLE_DEFS[role].team === 'lobos' ? 'role-lobos' : (ROLE_DEFS[role].team === 'solo' ? 'role-solo' : 'role-aldeoes');
+    roster += `<tr><td>${name}</td><td class="${cls}">${role}</td></tr>`;
+  });
+  roster += `</table>`;
+
+  const has = r => (counts[r]||0) > 0;
+
+  const night = `
+    <div class="script-block">
+      <h3>Fase da noite — 3 momentos</h3>
+      <p style="color:var(--silver); font-size:0.88rem; margin-bottom:14px;">Peça para todos fecharem os olhos antes de começar. A cada momento, só quem tem função ativa naquele momento abre os olhos.</p>
+
+      <div class="step">
+        <div class="who">1º Momento — Visão e ligações</div>
+        <div class="say">${has('Cupido') ? '"Cupido, abra os olhos — só nesta primeira noite — e aponte em silêncio para duas pessoas que serão os Enamorados." (feche os olhos dele depois)' : ''}
+        ${has('Vidente') ? '<br><br>"Vidente, abra os olhos e aponte para alguém. Eu vou confirmar com um sinal se essa pessoa é lobisomem." (feche os olhos dela depois)' : ''}</div>
+      </div>
+
+      <div class="step">
+        <div class="who">2º Momento — Proteção</div>
+        <div class="say">${has('Guarda-costas') ? '"Guarda-costas, abra os olhos e aponte para quem vai proteger esta noite." (feche)' : ''}
+        ${has('Médica') ? '<br><br>"Médica, abra os olhos e aponte para quem vai curar esta noite." (feche)' : ''}</div>
+      </div>
+
+      <div class="step">
+        <div class="who">3º Momento — Ataque</div>
+        <div class="say">${has('Lobisomem') ? '"Lobisomens, abram os olhos e apontem juntos, em silêncio, para a vítima desta noite." (feche)' : ''}
+        ${has('Assassino Solitário') ? '<br><br>"Assassino Solitário, abra os olhos e aponte sozinho para sua vítima." (feche)' : ''}
+        ${has('Bruxa') ? '<br><br>"Bruxa, abra os olhos. Esta foi a vítima escolhida esta noite. Quer usar sua poção de cura? Quer usar sua poção de veneno em alguém?" (feche)' : ''}</div>
+      </div>
+    </div>`;
+
+  const day = `
+    <div class="script-block">
+      <h3>Fase do dia</h3>
+      <div class="step"><div class="say">Todos abrem os olhos. Anuncie quem morreu essa noite, já considerando curas e proteções.
+      ${has('Caçador') ? '<br><br>Se o Caçador morreu, ele aponta na hora para mais alguém, que também é eliminado.' : ''}
+      ${has('Cupido') ? '<br><br>Se um dos Enamorados morreu, o outro morre de coração partido imediatamente.' : ''}
+      ${has('Ancião') ? '<br><br>Se a Anciã foi atacada pela primeira vez, ela sobrevive — mas perde essa proteção depois.' : ''}
+      <br><br>Abra a discussão do dia e depois façam a votação. Quem for mais votado é eliminado e tem sua função revelada.
+      ${has('Bobo da Corte') ? '<br><br>Se for o Bobo da Corte, ele vence sozinho na hora.' : ''}
+      </div></div>
+    </div>`;
+
+  const winConds = `
+    <div class="script-block">
+      <h3>Condições de vitória</h3>
+      <div class="step"><div class="say">
+      Aldeões vencem quando todos os lobisomens forem eliminados.<br><br>
+      Lobisomens vencem quando o número deles vivos ficar igual ou maior que o de todos os outros.
+      ${has('Assassino Solitário') ? '<br><br>O Assassino Solitário vence sozinho se for o último jogador vivo.' : ''}
+      ${has('Bobo da Corte') ? '<br><br>O Bobo da Corte vence sozinho se for votado e eliminado pela cidade.' : ''}
+      ${has('Cupido') ? '<br><br>Enamorados de times opostos formam um time secreto e vencem juntos se forem os dois últimos sobreviventes.' : ''}
+      </div></div>
+    </div>`;
+
+  return summary + night + day + winConds + `<h3 style="font-family:'Cormorant Garamond',serif; color:var(--gold); margin-top:24px;">Lista completa (só para o narrador)</h3>` + roster;
+}
+
+// ---- refresh / init ----
+async function refreshAll(){
+  const names = await getJSON(NAMES_KEY, true);
+  const assignment = await getJSON(ASSIGN_KEY, true);
+  const hasGame = names && assignment && Object.keys(assignment).length > 0;
+
+  // setup panel
+  document.getElementById('setupForm').style.display = hasGame ? 'none' : 'block';
+  document.getElementById('setupDone').style.display = hasGame ? 'block' : 'none';
+  if(hasGame){
+    const counts = {};
+    Object.values(assignment).forEach(r => counts[r] = (counts[r]||0)+1);
+    document.getElementById('summaryGrid').innerHTML = `
+      <div class="stat"><div class="n">${names.length}</div><div class="l">jogadores</div></div>
+      <div class="stat"><div class="n">${counts['Lobisomem']||0}</div><div class="l">lobisomens</div></div>`;
+  }
+
+  // reveal panel
+  document.getElementById('revealNoGame').style.display = hasGame ? 'none' : 'block';
+  document.getElementById('revealPicker').style.display = hasGame ? 'block' : 'none';
+  if(hasGame){
+    nameSelect.innerHTML = names.slice().sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n => `<option value="${n}">${n}</option>`).join('');
+    let myName = null;
+    try{ const r = await storage.get(MY_NAME_KEY, false); myName = r ? r.value : null; }catch(e){}
+    if(myName && names.includes(myName)) nameSelect.value = myName;
+  }
+
+  // narrator panel
+  document.getElementById('narratorNoGame').style.display = hasGame ? 'none' : 'block';
+  document.getElementById('narratorContent').style.display = hasGame ? 'block' : 'none';
+  if(hasGame){
+    document.getElementById('narratorContent').innerHTML = buildNarratorHTML(names, assignment);
+  }
+}
+
+(async function init(){
+  try{
+    activateTab('setup');
+    if(usingFallback){
+      document.getElementById('fallbackBanner').style.display = 'block';
+    }
+    await refreshAll();
+  }catch(err){
+    showError('Erro ao carregar o jogo: ' + err.message);
+  }
+})();
+
+window.addEventListener('error', (e) => {
+  showError('Erro inesperado: ' + (e.message || 'algo deu errado no script.'));
+});
+</script>
+</body>
+</html>
